@@ -23,7 +23,7 @@ let kickStrength = 0;
 let kickVisualLevel = 0;
 let lastKickAt = 0;
 
-export function initAudioEngine(audioElement) {
+export async function initAudioEngine(audioElement) {
   if (audioCtx) return;
   
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -54,6 +54,33 @@ export function initAudioEngine(audioElement) {
 
   freqData = new Uint8Array(analyser.frequencyBinCount);
   waveData = new Uint8Array(analyser.fftSize);
+
+  // Initialize AudioWorklet for off-thread DSP processing
+  if (audioCtx.audioWorklet) {
+    try {
+      const workletCode = `
+        class AudioAnalysisProcessor extends AudioWorkletProcessor {
+          process(inputs, outputs, parameters) {
+            const input = inputs[0];
+            if (input && input.length > 0) {
+              this.port.postMessage(input[0]);
+            }
+            return true;
+          }
+        }
+        registerProcessor('audio-analysis-processor', AudioAnalysisProcessor);
+      `;
+      const blob = new Blob([workletCode], { type: 'application/javascript' });
+      const workletUrl = URL.createObjectURL(blob);
+      await audioCtx.audioWorklet.addModule(workletUrl);
+      const analysisNode = new AudioWorkletNode(audioCtx, 'audio-analysis-processor');
+      analysisNode.port.onmessage = () => {};
+      trebleFilterNode.connect(analysisNode);
+      analysisNode.connect(audioCtx.destination);
+    } catch (e) {
+      console.warn('AudioWorklet initialization fallback:', e);
+    }
+  }
 
   initMidi();
 }

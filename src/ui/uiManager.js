@@ -1,7 +1,8 @@
 import { state, loadSettings, saveSettings } from '../core/state.js';
 import { ensureAudioReady, toggleMicrophone, updateSmoothing, updateBassBoost } from '../audio/audioEngine.js';
-import { initVisualizer, applyPreset, setBackgroundImage, setOverlayVideo, startRecording, stopRecording } from '../visuals/visualizer.js';
+import { initVisualizer, applyPreset, setBackgroundImage, setOverlayVideo, startRecording, stopRecording, takeSnapshot } from '../visuals/visualizer.js';
 import { compileShader, shaderPresets } from '../visuals/shaderEngine.js';
+import { addTracks, nextTrack } from '../audio/playlist.js';
 
 export function initUi() {
   loadSettings();
@@ -9,6 +10,7 @@ export function initUi() {
   setupTabs();
   setupControls();
   setupKeyboardShortcuts();
+  setupTouchGestures();
   setupDragAndDrop();
 }
 
@@ -98,16 +100,30 @@ function setupControls() {
     });
   });
 
-  // File Loaders
+  // File Loaders & Playlist
   fileInput.addEventListener('change', e => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    audioEl.src = url;
-    audioEl.load();
-    document.getElementById('fileName').textContent = file.name;
-    document.getElementById('status').textContent = 'Audio geladen · Bereit';
-    ensureAudioReady(audioEl);
+    const files = e.target.files;
+    if (!files || !files.length) return;
+    addTracks(files);
+    const track = nextTrack();
+    if (track) {
+      audioEl.src = track.url;
+      audioEl.load();
+      audioEl.play().catch(() => {});
+      document.getElementById('fileName').textContent = track.name;
+      document.getElementById('status').textContent = 'Playlist geladen · Playing';
+      ensureAudioReady(audioEl);
+    }
+  });
+
+  audioEl.addEventListener('ended', () => {
+    const track = nextTrack();
+    if (track) {
+      audioEl.src = track.url;
+      audioEl.load();
+      audioEl.play().catch(() => {});
+      document.getElementById('fileName').textContent = track.name;
+    }
   });
 
   bgInput.addEventListener('change', e => {
@@ -156,6 +172,11 @@ function setupControls() {
 
   recordStartBtn.addEventListener('click', () => startRecording(audioEl));
   recordStopBtn.addEventListener('click', stopRecording);
+  
+  const snapshotBtn = document.getElementById('snapshotBtn');
+  if (snapshotBtn) {
+    snapshotBtn.addEventListener('click', takeSnapshot);
+  }
 
   helpBtn.addEventListener('click', () => helpModal.classList.add('open'));
   closeModalBtn.addEventListener('click', () => helpModal.classList.remove('open'));
@@ -289,4 +310,48 @@ function setupDragAndDrop() {
       }
     }
   });
+}
+
+function setupTouchGestures() {
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let lastTapTime = 0;
+
+  window.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+
+      const now = performance.now();
+      if (now - lastTapTime < 300) {
+        const cleanBtn = document.getElementById('cleanFullscreenButton');
+        if (cleanBtn) cleanBtn.click();
+      }
+      lastTapTime = now;
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', e => {
+    if (e.changedTouches.length === 1) {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+
+      if (Math.abs(diffX) > 80 && Math.abs(diffX) > Math.abs(diffY)) {
+        const modes = ['nebula', 'spectrum', 'tunnel', 'terrain', 'sphere', 'shader', 'fusion', 'hybrid'];
+        const idx = modes.indexOf(state.mode);
+        state.mode = diffX > 0 ? modes[(idx - 1 + modes.length) % modes.length] : modes[(idx + 1) % modes.length];
+        const modeEl = document.getElementById('mode');
+        if (modeEl) { modeEl.value = state.mode; modeEl.dispatchEvent(new Event('input')); }
+      } else if (Math.abs(diffY) > 80 && Math.abs(diffY) > Math.abs(diffX)) {
+        const presets = ['aurora', 'sunset', 'neon', 'ice', 'mono', 'cyberpunk'];
+        const idx = presets.indexOf(state.preset);
+        state.preset = diffY > 0 ? presets[(idx - 1 + presets.length) % presets.length] : presets[(idx + 1) % presets.length];
+        applyPreset(state.preset);
+        const presetEl = document.getElementById('preset');
+        if (presetEl) presetEl.value = state.preset;
+      }
+    }
+  }, { passive: true });
 }

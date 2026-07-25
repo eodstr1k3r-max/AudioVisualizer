@@ -419,7 +419,7 @@
     <div class="ui">
       <div class="panel">
         <div class="panel-header">
-          <h1>Visualizer <span class="badge">ULTIMATE PRO</span></h1>
+          <h1>Visualizer <span class="badge">v2.1 PRO</span></h1>
           <button class="btn ghost" id="helpBtn" style="padding: 6px 12px; min-height: 34px; font-size:0.78rem;">Shortcuts (?)</button>
         </div>
 
@@ -445,6 +445,7 @@
           </div>
 
           <audio id="audio" controls></audio>
+          <div id="playlistContainer" style="display:grid; gap:4px; max-height:110px; overflow-y:auto;"></div>
 
           <div class="grid-2">
             <label class="field">
@@ -545,6 +546,10 @@
                 <option value="retrowave">Synthwave Sun & Grid</option>
                 <option value="kaleidoscope">Audio Kaleidoscope</option>
                 <option value="imagewarp">Audio Image Warp</option>
+                <option value="sphered3">3D Audio Sphere</option>
+                <option value="ringbars3d">3D Circular Ring Bars</option>
+                <option value="spectrumwall">3D Spectrum Wall</option>
+                <option value="wormhole3d">3D Audio Wormhole</option>
               </select>
             </label>
             <label class="field" style="grid-column: span 2;">
@@ -655,6 +660,10 @@
           <div class="button-row">
             <button class="btn" id="recordStartButton" type="button">Aufnahme Starten</button>
             <button class="btn danger" id="recordStopButton" type="button" disabled>Stop & Download</button>
+          </div>
+
+          <div class="button-row">
+            <button class="btn ghost" id="snapshotBtn" type="button">📸 High-Res Screenshot</button>
           </div>
 
           <div class="meta">

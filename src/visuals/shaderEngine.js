@@ -415,6 +415,132 @@ void main() {
     col += vec3(0.94, 0.27, 0.57) * u_kick * 0.6;
     gl_FragColor = vec4(col, 1.0);
 }`
+  },
+  sphered3: {
+    name: '3D Audio Sphere',
+    code: `precision highp float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_bass;
+uniform float u_mid;
+uniform float u_treble;
+uniform float u_energy;
+uniform float u_kick;
+
+void main() {
+    vec2 p = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+    vec3 col = vec3(0.01, 0.02, 0.06);
+
+    vec3 ro = vec3(0.0, 0.0, -3.0);
+    vec3 rd = normalize(vec3(p, 1.0));
+
+    float d = 0.0;
+    for(int i = 0; i < 64; i++) {
+        vec3 rp = ro + rd * d;
+        float r = length(rp) - (0.8 + u_bass * 0.4 + sin(rp.x * 6.0 + u_time * 4.0) * 0.1);
+        if (r < 0.001 || d > 10.0) break;
+        d += r;
+    }
+
+    if (d < 10.0) {
+        vec3 rp = ro + rd * d;
+        vec3 n = normalize(rp);
+        float diff = max(dot(n, vec3(0.5, 0.8, -0.5)), 0.2);
+        vec3 sphereCol = mix(vec3(0.13, 0.82, 0.94), vec3(0.84, 0.26, 0.96), n.y * 0.5 + 0.5);
+        col = sphereCol * diff * (1.2 + u_energy * 2.5);
+    }
+
+    col += vec3(0.94, 0.27, 0.57) * u_kick * (1.5 - length(p));
+    gl_FragColor = vec4(col, 1.0);
+}`
+  },
+  ringbars3d: {
+    name: '3D Circular Ring Bars',
+    code: `precision highp float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_bass;
+uniform float u_mid;
+uniform float u_treble;
+uniform float u_energy;
+uniform float u_kick;
+
+void main() {
+    vec2 p = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+    vec3 col = vec3(0.02, 0.01, 0.05);
+
+    float r = length(p);
+    float a = atan(p.y, p.x);
+
+    float bars = sin(a * 24.0 + u_time * 2.0);
+    float height = 0.5 + (bars * 0.5) * (0.2 + u_bass * 1.8 + u_mid * 1.2);
+
+    float ring = smoothstep(height + 0.03, height, r) - smoothstep(height, height - 0.03, r);
+    vec3 ringCol = mix(vec3(0.2, 0.9, 0.95), vec3(0.9, 0.2, 0.7), sin(a * 2.0 + u_time));
+
+    col += ringCol * ring * (1.2 + u_energy * 3.5);
+    col += vec3(0.94, 0.27, 0.57) * u_kick * (1.4 - r);
+
+    gl_FragColor = vec4(col, 1.0);
+}`
+  },
+  spectrumwall: {
+    name: '3D Spectrum Wall',
+    code: `precision highp float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_bass;
+uniform float u_mid;
+uniform float u_treble;
+uniform float u_energy;
+uniform float u_kick;
+
+void main() {
+    vec2 p = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+    vec3 col = vec3(0.01, 0.02, 0.05);
+
+    vec2 id = floor(p * 12.0 + vec2(0.0, u_time * 2.0));
+    vec2 f = fract(p * 12.0 + vec2(0.0, u_time * 2.0)) - 0.5;
+
+    float barHeight = sin(id.x * 0.8 + u_time) * 0.5 + 0.5;
+    barHeight *= (0.2 + u_bass * 2.0 + u_treble * 1.2);
+
+    if (abs(f.x) < 0.35 && p.y < (barHeight - 0.5)) {
+        vec3 barCol = mix(vec3(0.13, 0.82, 0.94), vec3(0.94, 0.26, 0.64), p.y + 0.5);
+        col = barCol * (1.2 + u_energy * 3.0 + barHeight);
+    }
+
+    col += vec3(0.94, 0.27, 0.57) * u_kick * (1.5 - length(p));
+    gl_FragColor = vec4(col, 1.0);
+}`
+  },
+  wormhole3d: {
+    name: '3D Audio Wormhole',
+    code: `precision highp float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_bass;
+uniform float u_mid;
+uniform float u_treble;
+uniform float u_energy;
+uniform float u_kick;
+
+void main() {
+    vec2 p = (gl_FragCoord.xy * 2.0 - u_resolution.xy) / min(u_resolution.x, u_resolution.y);
+    vec3 col = vec3(0.01, 0.02, 0.05);
+
+    float r = length(p);
+    float a = atan(p.y, p.x);
+
+    float t = u_time * (5.0 + u_bass * 6.0);
+    float tunnel = sin(1.0 / (r + 0.02) * 6.0 - t + a * 6.0);
+
+    vec3 tone = mix(vec3(0.2, 0.8, 1.0), vec3(0.9, 0.3, 0.7), sin(a + u_time));
+    col += tone * smoothstep(0.6, 1.0, abs(tunnel)) * (1.2 + u_energy * 3.5) / (r + 0.1);
+
+    col += vec3(0.94, 0.27, 0.57) * u_kick * (1.6 - r);
+    gl_FragColor = vec4(col, 1.0);
+}`
   }
 };
 

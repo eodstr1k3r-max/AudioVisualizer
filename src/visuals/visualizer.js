@@ -631,3 +631,30 @@ function updateRecordingUi(active) {
   if (dot) dot.classList.toggle('rec', active);
   if (stateEl) stateEl.textContent = active ? 'Aufnahme läuft' : 'Nicht aktiv';
 }
+
+export function takeSnapshot() {
+  const snapCanvas = document.createElement('canvas');
+  snapCanvas.width = canvas.width;
+  snapCanvas.height = canvas.height;
+  const snapCtx = snapCanvas.getContext('2d');
+
+  const shaderCanvasEl = document.getElementById('shaderCanvas');
+  if (shaderCanvasEl && shaderCanvasEl.style.display !== 'none') {
+    snapCtx.drawImage(shaderCanvasEl, 0, 0);
+  }
+  if (canvas) {
+    snapCtx.drawImage(canvas, 0, 0);
+  }
+  if (threeCanvas && threeCanvas.style.display !== 'none') {
+    snapCtx.drawImage(threeCanvas, 0, 0);
+  }
+
+  const url = snapCanvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `visualizer-snapshot-${Date.now()}.png`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  document.getElementById('status').textContent = 'High-Res Screenshot gespeichert!';
+}
