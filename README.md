@@ -62,7 +62,7 @@ npm run preview
 This project includes pre-configured PM2 start and stop scripts to run a production server easily.
 
 ### Windows
-- **Start:** Double-click `pm2-start.bat` (automatically builds and starts via PM2 on port 3000)
+- **Start:** Double-click `pm2-start.bat` (automatically builds and starts via PM2 on port 5174)
 - **Stop:** Double-click `pm2-stop.bat`
 
 ### Linux / macOS
