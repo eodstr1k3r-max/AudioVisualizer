@@ -12,6 +12,11 @@
 
 </div>
 
+> **Demo Page:** https://audio-visualizer.derstr1k3r.de
+> **Idea by:** Martin Kraken  
+> **Author & Implementation:** DerStr1k3r
+
+
 ---
 
 ## 💡 Origin & Credits
@@ -77,7 +82,7 @@ npm run preview
 Pre-configured PM2 start and stop scripts are included for enterprise-grade production deployment.
 
 ### Windows
-- **Start:** Double-click `pm2-start.bat` (automatically builds and starts via PM2 on port 3000)
+- **Start:** Double-click `pm2-start.bat` (automatically builds and starts via PM2 on port 5174)
 - **Stop:** Double-click `pm2-stop.bat`
 
 ### Linux / macOS
