@@ -7,6 +7,7 @@
 
 A next-generation, AAA-level 2D/3D audio visualizer and custom GLSL fragment shader editor engineered for music producers, video creators, and live performers. 
 
+> **Demo Page:** https://audio-visualizer.derstr1k3r.de  
 > **Idea by:** Martin Kraken  
 > **Author & Implementation:** DerStr1k3r
 
