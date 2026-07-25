@@ -537,6 +537,24 @@ export function renderVisualizer(time) {
     beatState.textContent = isKick ? 'Kick erkannt' : (isHot ? 'Beat aktiv' : 'Bereit');
   }
 
+  if (isRecording) {
+    if (recordCanvas.width !== canvas.width || recordCanvas.height !== canvas.height) {
+      recordCanvas.width = canvas.width;
+      recordCanvas.height = canvas.height;
+    }
+    recordCtx.clearRect(0, 0, recordCanvas.width, recordCanvas.height);
+    const shaderCanvasEl = document.getElementById('shaderCanvas');
+    if (shaderCanvasEl && shaderCanvasEl.style.display !== 'none') {
+      recordCtx.drawImage(shaderCanvasEl, 0, 0, recordCanvas.width, recordCanvas.height);
+    }
+    if (canvas) {
+      recordCtx.drawImage(canvas, 0, 0, recordCanvas.width, recordCanvas.height);
+    }
+    if (threeCanvas && threeCanvas.style.display !== 'none') {
+      recordCtx.drawImage(threeCanvas, 0, 0, recordCanvas.width, recordCanvas.height);
+    }
+  }
+
   requestAnimationFrame(renderVisualizer);
 }
 
@@ -545,6 +563,8 @@ let mediaRecorder = null;
 let recordingStream = null;
 let recordedChunks = [];
 let isRecording = false;
+const recordCanvas = document.createElement('canvas');
+const recordCtx = recordCanvas.getContext('2d');
 
 export function startRecording(audioEl) {
   if (isRecording || !window.MediaRecorder) return;
@@ -552,15 +572,18 @@ export function startRecording(audioEl) {
     isRecording = true;
     resize();
 
+    recordCanvas.width = canvas.width;
+    recordCanvas.height = canvas.height;
+
     recordedChunks = [];
-    const stream = canvas.captureStream(60);
+    const stream = recordCanvas.captureStream(60);
     const captureAudio = audioEl.captureStream ? audioEl.captureStream() : null;
     if (captureAudio) {
       captureAudio.getAudioTracks().forEach(t => stream.addTrack(t));
     }
 
     const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
-    mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 12000000 });
+    mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 16000000 });
     mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
     mediaRecorder.onstop = exportRecording;
     mediaRecorder.start(250);
