@@ -39,7 +39,7 @@ void main() {
     float t = (0.0 - ro.y) / rd.y;
     if (t > 0.0) {
         vec2 pos = ro.xz + rd.xz * t;
-        vec2 grid = abs(fract(pos - 0.5) - 0.5) / fwidth(pos);
+        vec2 grid = abs(fract(pos - 0.5) - 0.5) / (0.04 + abs(pos) * 0.02);
         float line = min(grid.x, grid.y);
         float lighting = 1.0 - min(line, 1.0);
         
