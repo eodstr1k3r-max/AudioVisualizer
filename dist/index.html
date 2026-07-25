@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Audio Visualizer Ultimate Pro</title>
+  <style>
+    :root {
+      --bg-dark: #02040a;
+      --panel-bg: rgba(8, 12, 26, 0.82);
+      --panel-border: rgba(255, 255, 255, 0.14);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #8b5cf6;
+      --accent-2: #22d3ee;
+      --accent-glow: rgba(139, 92, 246, 0.35);
+      --danger: #f43f5e;
+      --success: #10b981;
+      --shadow: 0 30px 80px rgba(0, 0, 0, 0.65), 0 0 40px rgba(139, 92, 246, 0.15);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(139, 92, 246, 0.22), transparent 40%),
+        radial-gradient(circle at 90% 15%, rgba(34, 211, 238, 0.18), transparent 40%),
+        radial-gradient(circle at 50% 90%, rgba(59, 130, 246, 0.15), transparent 45%),
+        linear-gradient(180deg, #050816 0%, #010206 100%);
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #shaderCanvas { z-index: 0; }
+    #visualizer { z-index: 1; }
+    #threeCanvas { pointer-events: none; z-index: 2; }
+
+    .ui {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      padding: 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      z-index: 10;
+    }
+
+    .panel {
+      width: min(520px, calc(100vw - 48px));
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      pointer-events: auto;
+      padding: 22px;
+      border-radius: 28px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(24px);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel::-webkit-scrollbar { width: 6px; }
+    .panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 999px; }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff, var(--muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .badge {
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(34, 211, 238, 0.3));
+      border: 1px solid rgba(139, 92, 246, 0.5);
+      color: #e2e8f0;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 6px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 0;
+      padding: 10px 2px;
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: center;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    }
+
+    .tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      animation: fadeIn 200ms ease;
+    }
+
+    .tab-content.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .upload {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 16px;
+      border-radius: 16px;
+      border: 1.5px dashed rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: all 200ms ease;
+      font-weight: 700;
+      font-size: 0.92rem;
+      user-select: none;
+    }
+
+    .upload:hover {
+      border-color: var(--accent-2);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 0 20px rgba(34, 211, 238, 0.15);
+    }
+
+    .upload input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    audio {
+      width: 100%;
+      height: 42px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: border-color 160ms ease;
+    }
+
+    .field:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .field span {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .field input[type="range"],
+    .field select,
+    .field textarea {
+      width: 100%;
+      accent-color: var(--accent);
+      background: transparent;
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .field select, .field textarea {
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(10, 15, 30, 0.95);
+      font-size: 0.88rem;
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 150px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button.btn {
+      border: 0;
+      cursor: pointer;
+      min-height: 44px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+      transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+      flex: 1;
+    }
+
+    button.btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(139, 92, 246, 0.45);
+    }
+
+    button.btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button.btn.ghost {
+      background: rgba(255, 255, 255, 0.07);
+      box-shadow: none;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    button.btn.ghost:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    button.btn.danger {
+      background: linear-gradient(135deg, var(--danger), #f97316);
+      box-shadow: 0 10px 25px rgba(244, 63, 94, 0.3);
+    }
+
+    .meta {
+      display: grid;
+      gap: 6px;
+      font-size: 0.86rem;
+      color: var(--muted);
+      background: rgba(0,0,0,0.25);
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .meta strong { color: var(--text); }
+
+    .live-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      margin-right: 8px;
+      background: rgba(255, 255, 255, 0.3);
+      transition: all 150ms ease;
+    }
+
+    .live-dot.hot { background: var(--success); box-shadow: 0 0 14px var(--success); }
+    .live-dot.rec { background: var(--danger); box-shadow: 0 0 14px var(--danger); animation: pulse-rec 1.2s infinite; }
+
+    @keyframes pulse-rec {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .dropzone {
+      position: absolute;
+      inset: 24px;
+      border-radius: 32px;
+      border: 2px dashed rgba(255, 255, 255, 0.25);
+      background: rgba(2, 4, 10, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 28px;
+      pointer-events: none;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+    }
+
+    .dropzone.active { display: flex; }
+    .dropzone strong { display: block; font-size: 1.8rem; margin-bottom: 8px; }
+
+    .status {
+      position: absolute;
+      right: 24px;
+      bottom: 24px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow);
+      color: var(--muted);
+      font-size: 0.88rem;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    body.clean-mode .ui,
+    body.clean-mode .status,
+    body.clean-mode .dropzone {
+      display: none !important;
+    }
+
+    /* Shortcut Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      padding: 28px;
+      border-radius: 24px;
+      width: min(420px, 90vw);
+      box-shadow: var(--shadow);
+    }
+    .modal h2 { margin-top: 0; font-size: 1.3rem; }
+    .shortcut-list { display: grid; gap: 10px; font-size: 0.92rem; margin-top: 14px; }
+    .shortcut-item { display: flex; justify-content: space-between; color: var(--muted); }
+    .shortcut-item kbd { background: rgba(255,255,255,0.12); padding: 3px 8px; border-radius: 6px; color: var(--text); font-family: monospace; }
+  </style>
+  <script type="module" crossorigin src="/assets/index-0PIeLRfX.js"></script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="shaderCanvas"></canvas>
+    <canvas id="visualizer"></canvas>
+    <canvas id="threeCanvas"></canvas>
+
+    <div class="dropzone" id="dropzone">
+      <div>
+        <strong>Dateien hier ablegen</strong>
+        <div>Audio, Bilder und Videos bleiben zu 100% lokal in deinem Browser.</div>
+      </div>
+    </div>
+
+    <div class="ui">
+      <div class="panel">
+        <div class="panel-header">
+          <h1>Visualizer <span class="badge">ULTIMATE PRO</span></h1>
+          <button class="btn ghost" id="helpBtn" style="padding: 6px 12px; min-height: 34px; font-size:0.78rem;">Shortcuts (?)</button>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="tab-audio">🎵 Audio</button>
+          <button class="tab-btn" data-tab="tab-visuals">✨ Visuals</button>
+          <button class="tab-btn" data-tab="tab-shader">💻 Shader</button>
+          <button class="tab-btn" data-tab="tab-bg">🖼️ BG</button>
+          <button class="tab-btn" data-tab="tab-video">🎥 Video</button>
+          <button class="tab-btn" data-tab="tab-export">💾 Export</button>
+        </div>
+
+        <!-- Tab 1: Audio -->
+        <div class="tab-content active" id="tab-audio">
+          <label class="upload">
+            Audio-Datei auswählen
+            <input id="fileInput" type="file" accept="audio/*" />
+          </label>
+
+          <div class="button-row">
+            <button class="btn ghost" id="micButton" type="button">Mikrofon Aktivieren</button>
+          </div>
+
+          <audio id="audio" controls></audio>
+
+          <div class="grid-2">
+            <label class="field">
+              <span>Sensitivität <strong id="valSens">1.45</strong></span>
+              <input id="sensitivity" type="range" min="0.5" max="3.0" step="0.05" value="1.45" />
+            </label>
+            <label class="field">
+              <span>Glättung <strong id="valSmooth">0.82</strong></span>
+              <input id="smoothing" type="range" min="0.0" max="0.95" step="0.01" value="0.82" />
+            </label>
+            <label class="field">
+              <span>Kick-Schwelle <strong id="valKickThresh">0.29</strong></span>
+              <input id="kickThreshold" type="range" min="0.1" max="0.8" step="0.01" value="0.29" />
+            </label>
+            <label class="field">
+              <span>Bass Boost <strong id="valBassBoost">3 dB</strong></span>
+              <input id="bassBoost" type="range" min="0" max="15" step="1" value="3" />
+            </label>
+          </div>
+
+          <div class="meta">
+            <div><strong>Quelle:</strong> <span id="fileName">Keine geladen</span></div>
+            <div><strong>Beat:</strong> <span class="live-dot" id="beatDot"></span><span id="beatState">Bereit</span></div>
+            <div><strong>MIDI:</strong> <span id="midiState">Kein Controller verbunden</span></div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Visuals -->
+        <div class="tab-content" id="tab-visuals">
+          <div class="grid-2">
+            <label class="field">
+              <span>Modus</span>
+              <select id="mode">
+                <option value="nebula">Nebula Ring</option>
+                <option value="spectrum">Spectrum Bars</option>
+                <option value="tunnel">Pulse Tunnel</option>
+                <option value="terrain">3D Terrain (Three.js)</option>
+                <option value="sphere">3D Audio Sphere</option>
+                <option value="shader">Custom GLSL Shader</option>
+                <option value="fusion">Shader Fusion (Visuals + GLSL)</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Farb-Preset</span>
+              <select id="preset">
+                <option value="aurora">Aurora</option>
+                <option value="sunset">Sunset</option>
+                <option value="neon">Neon</option>
+                <option value="ice">Ice</option>
+                <option value="mono">Mono</option>
+                <option value="cyberpunk">Cyberpunk</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Partikel <strong id="valParticles">140</strong></span>
+              <input id="particleCount" type="range" min="40" max="300" step="10" value="140" />
+            </label>
+            <label class="field">
+              <span>Kick-Stil</span>
+              <select id="kickStyle">
+                <option value="glow">Soft Glow</option>
+                <option value="ripple">Ripple Ring</option>
+                <option value="pulse">Sanfter Puls</option>
+                <option value="flash">Soft Flash</option>
+                <option value="off">Aus</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Kick-Intensität <strong id="valKickStr">0.45</strong></span>
+              <input id="kickVisualStrength" type="range" min="0.0" max="1.2" step="0.05" value="0.45" />
+            </label>
+            <label class="field">
+              <span>Spektrum-Skala</span>
+              <select id="spectrumScale">
+                <option value="linear">Linear</option>
+                <option value="log">Logarithmisch</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <!-- Tab 3: Shader Editor -->
+        <div class="tab-content" id="tab-shader">
+          <div class="grid-2">
+            <label class="field" style="grid-column: span 2;">
+              <span>Shader Preset</span>
+              <select id="shaderPresetSelect">
+                <option value="cybergrid">Cyber Grid</option>
+                <option value="plasma">Plasma Waves</option>
+                <option value="neonpulse">Neon Pulse</option>
+                <option value="matrix">Digital Matrix</option>
+                <option value="vortex">Psychedelic Vortex</option>
+                <option value="spectrumbars3d">3D Spectrum Towers</option>
+                <option value="hyperspace">Hyperspace Warp</option>
+                <option value="audiocity">Cyber Audio City</option>
+                <option value="cybertunnel">Cyberpunk Tunnel</option>
+                <option value="retrowave">Synthwave Sun & Grid</option>
+                <option value="kaleidoscope">Audio Kaleidoscope</option>
+                <option value="imagewarp">Audio Image Warp</option>
+              </select>
+            </label>
+            <label class="field" style="grid-column: span 2;">
+              <span>Shader Blend / Fusion Deckkraft <strong id="valShaderBlend">0.65</strong></span>
+              <input id="shaderBlend" type="range" min="0.0" max="1.0" step="0.05" value="0.65" />
+            </label>
+          </div>
+
+          <label class="field">
+            <span>GLSL Fragment Shader Code</span>
+            <textarea id="shaderCodeInput" spellcheck="false"></textarea>
+          </label>
+
+          <div class="button-row">
+            <button class="btn" id="compileShaderBtn" type="button">Shader Kompilieren</button>
+          </div>
+
+          <div class="meta" id="shaderErrorBox" style="border-color: rgba(244,63,94,0.4); display: none;">
+            <div><strong>Fehler:</strong> <span id="shaderErrorOutput" style="color: var(--danger); font-family: monospace; font-size: 0.75rem;"></span></div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Background -->
+        <div class="tab-content" id="tab-bg">
+          <label class="upload">
+            Hintergrundbild auswählen
+            <input id="backgroundInput" type="file" accept="image/*" />
+          </label>
+
+          <div class="grid-2">
+            <label class="field">
+              <span>Deckkraft <strong id="valBgOp">0.30</strong></span>
+              <input id="bgOpacity" type="range" min="0.0" max="1.0" step="0.05" value="0.30" />
+            </label>
+            <label class="field">
+              <span>Kontrast <strong id="valBgCon">0.55</strong></span>
+              <input id="bgContrast" type="range" min="0.25" max="1.2" step="0.05" value="0.55" />
+            </label>
+            <label class="field">
+              <span>Anpassung</span>
+              <select id="bgFitMode">
+                <option value="cover">Füllen</option>
+                <option value="contain">Einpassen</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Zoom <strong id="valBgZoom">1.0</strong></span>
+              <input id="bgScale" type="range" min="0.5" max="2.5" step="0.05" value="1" />
+            </label>
+            <label class="field">
+              <span>Position X <strong id="valBgX">0.0</strong></span>
+              <input id="bgPosX" type="range" min="-1" max="1" step="0.05" value="0" />
+            </label>
+            <label class="field">
+              <span>Position Y <strong id="valBgY">0.0</strong></span>
+              <input id="bgPosY" type="range" min="-1" max="1" step="0.05" value="0" />
+            </label>
+          </div>
+          <div class="meta">
+            <div><strong>Hintergrund:</strong> <span id="backgroundName">Kein Bild</span></div>
+          </div>
+        </div>
+
+        <!-- Tab 5: Video Overlay -->
+        <div class="tab-content" id="tab-video">
+          <label class="upload">
+            Zentrum-Video auswählen (Chroma Key)
+            <input id="overlayVideoInput" type="file" accept="video/*" />
+          </label>
+          <video id="overlayVideo" muted loop playsinline preload="auto" style="display:none;"></video>
+
+          <div class="grid-2">
+            <label class="field">
+              <span>Video-Größe <strong id="valVidScale">0.6</strong></span>
+              <input id="overlayVideoScale" type="range" min="0.2" max="1.4" step="0.05" value="0.6" />
+            </label>
+            <label class="field">
+              <span>Key-Schwelle <strong id="valKeyThresh">222</strong></span>
+              <input id="overlayKeyThreshold" type="range" min="160" max="255" step="1" value="222" />
+            </label>
+            <label class="field">
+              <span>Key-Softness <strong id="valKeySoft">22</strong></span>
+              <input id="overlayKeySoftness" type="range" min="0" max="80" step="1" value="22" />
+            </label>
+            <label class="field">
+              <span>Geschwindigkeit <strong id="valVidSpeed">1.0</strong></span>
+              <input id="overlayVideoSpeed" type="range" min="0.25" max="2" step="0.05" value="1" />
+            </label>
+          </div>
+          <div class="meta">
+            <div><strong>Video:</strong> <span id="overlayVideoName">Kein Video</span></div>
+          </div>
+        </div>
+
+        <!-- Tab 6: Export -->
+        <div class="tab-content" id="tab-export">
+          <div class="grid-2">
+            <label class="field" style="grid-column: span 2;">
+              <span>Recorder-Auflösung (16:9 Broadcast)</span>
+              <select id="recordResolution">
+                <option value="1920">Full HD 1080p (1920x1080)</option>
+                <option value="2560">QHD 1440p (2560x1440)</option>
+                <option value="3840">Ultra HD 4K (3840x2160)</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button class="btn" id="recordStartButton" type="button">Aufnahme Starten</button>
+            <button class="btn danger" id="recordStopButton" type="button" disabled>Stop & Download</button>
+          </div>
+
+          <div class="meta">
+            <div><strong>Status:</strong> <span class="live-dot" id="recordDot"></span><span id="recordingState">Nicht aktiv</span></div>
+            <div><strong>Tipp:</strong> Nutze "Clean Mode" für eine ungestörte Ansicht.</div>
+          </div>
+        </div>
+
+        <!-- Global Action Buttons -->
+        <div class="button-row" style="margin-top: 4px;">
+          <button class="btn" id="playButton" type="button">Play / Pause</button>
+          <button class="btn ghost" id="fullscreenButton" type="button">Vollbild</button>
+          <button class="btn ghost" id="cleanFullscreenButton" type="button">Clean Mode</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="status" id="status">Ultimate Pro Ready · Lade Musik oder aktiviere Mikrofon</div>
+  </div>
+
+  <!-- Shortcut Modal -->
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal">
+      <h2>Tastenkürzel & Hilfe</h2>
+      <div class="shortcut-list">
+        <div class="shortcut-item"><span>Play / Pause</span><kbd>Space</kbd></div>
+        <div class="shortcut-item"><span>Clean Fullscreen</span><kbd>F</kbd> / <kbd>Doppelklick</kbd></div>
+        <div class="shortcut-item"><span>Modus wechseln</span><kbd>M</kbd></div>
+        <div class="shortcut-item"><span>Preset wechseln</span><kbd>P</kbd></div>
+        <div class="shortcut-item"><span>Hilfe öffnen</span><kbd>?</kbd> / <kbd>ESC</kbd></div>
+      </div>
+      <div style="margin-top: 16px; text-align: right;">
+        <button class="btn" id="closeModalBtn" style="padding: 6px 16px; min-height: 32px;">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
