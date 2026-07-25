@@ -13,8 +13,6 @@
 </div>
 
 > **Demo Page:** https://audio-visualizer.derstr1k3r.de
-> **Idea by:** Martin Kraken  
-> **Author & Implementation:** DerStr1k3r
 
 
 ---
