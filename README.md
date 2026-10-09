@@ -9,7 +9,7 @@
 [![WebGPU](https://img.shields.io/badge/WebGPU-2B037A?style=for-the-badge&logo=webgl&logoColor=white)](https://www.w3.org/TR/webgpu/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-**Ein Broadcast-ready 3D-Audio-Visualizer der AAA-Klasse: komplett in echtem 3D, mit Cinematic-FX-Pipeline, globaler 3D-Atmosphäre, TSL-Shader-Studio und dem „NEON OS"-Cockpit-UI.**
+**Ein Broadcast-ready 3D-Audio-Visualizer: komplett in echtem 3D, mit Cinematic-FX-Pipeline, globaler 3D-Atmosphäre, TSL-Shader-Studio und dem „NEON OS"-Cockpit-UI.**
 
 </div>
 
