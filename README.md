@@ -13,6 +13,7 @@
 
 </div>
 
+ **Demo Page:** https://audio-visualizer.derstr1k3r.de
 ---
 
 ## ✨ Was ist neu in v5 (Cinematic FX, globale Atmosphäre & NEON OS UI)?
